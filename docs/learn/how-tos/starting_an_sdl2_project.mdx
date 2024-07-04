@@ -250,6 +250,76 @@ will change the window mode:
                   Windows.Set_Mode (Game_Window, Mode);
 ```
 
+## Creating a blank canvas
+
+In SDL2, the way to draw the screen is to render to a texture, and then present
+that texture to the renderer. This is basically, off screen rendering.
+
+With the correct packages:
+
+```ada
+with SDL.Video.Pixel_Formats;
+with SDL.Video.Renderers.Makers;
+with SDL.Video.Textures.Makers;
+```
+
+We need to add both a renderer and a texture to render:
+
+```ada
+   Renderer : SDL.Video.Renderers.Renderer;
+   Texture  : SDL.Video.Textures.Texture;
+```
+
+Add two more renames:
+
+```ada
+   package Pixel_Formats renames SDL.Video.Pixel_Formats;
+   package Renderers renames SDL.Video.Renderers.Makers;
+   package Textures renames SDL.Video.Textures.Makers;
+```
+
+After the window creation function, add the following:
+
+```ada
+   Renderers.Makers.Create (Window => Window,
+                            Rend   => Renderer,
+                            Flags  => Accelerated);
+```
+
+The Flags just specify that we want a hardware accelerated renderer.
+
+Following this, we need to create a texture which will be our game world, or
+screen drawing surface. This will be used to implement double buffering, as you'll
+normally draw to the texture, then present it to the renderer which will then
+draw the texture onto the window.
+
+```ada
+   Textures.Makers.Create (Tex      => Texture,
+                           Renderer => Renderer,
+                           Format   => Pixel_Formats.Pixel_Format_ARGB_8888,
+                           Kind     => Textures.Streaming,
+                           Size     => Window_Size);
+```
+
+Specifying the pixel format as ARGB 8888, just means your colour palette can use
+the full 24-bit colour range with 8-bits of transparency (alpha channel).
+
+You will normally want the texture size to be the same size as the window. The
+main reason for having a smaller texture is for pixel art style games, where you
+would specify a a much smaller texture which is then scaled by SDL2 when presented
+to the renderer to the ful screen. Adam C. Younis has a good explanation of which
+resolutions to use for this in his [canvas sizes](https://youtu.be/upEGBGCiWEw?si=v8aqmpol-CkRfiIl&t=1020) video.
+
+Now to present the thing to the screen. After the event while loop, add the
+following lines:
+
+```ada
+      Renderer.Clear;
+      Renderer.Present;
+```
+
+When you run this game, you will now have a black window, yay!
+
 ## Drawing to the screen
 
 ## Adding an FPS counter
