@@ -1,0 +1,255 @@
+---
+sidebar_position: 3
+description: How to start an SDLAda project.
+keywords:
+  - UTF-8
+  - Unicode
+  - GNAT
+---
+
+# Starting an SDL2 project with SDLAda
+
+The source code is in flux at the moment and there is an SDL specific game jam
+coming up in August that I would like Ada people to enter to show what a good
+language Ada is for game development.
+
+**N.B**: In the following tutorial, use your own _game name_ where **`ada_game`**
+is shown, use underscores to separate the words within the name.
+
+Create a directory or find a suitable directory for you game development source and
+use [Alire](https://ada-lang.io) to create a new project:
+
+```console
+$ mkdir sdl2-tut
+$ cd sdl2-tut
+$ alr init --bin ada_game
+Enter a short description of the crate: (default: '')
+> Example of SDLAda.
+Select a software license for the crate?
+  1. MIT OR Apache-2.0 WITH LLVM-exception
+  2. MIT
+  3. Apache-2.0 WITH LLVM-exception
+  4. Apache-2.0
+  5. BSD-3-Clause
+  6. LGPL-3.0-or-later
+  7. GPL-3.0-or-later WITH GCC-exception-3.1
+  8. GPL-3.0-or-later
+  9. Other...
+Enter your choice index (first is default):
+> 9
+Enter SPDX license expression (https://spdx.org/licenses/): (default: '')
+> Zlib
+Enter a comma (',') separated list of tags to help people find your crate: (default: '')
+> ada,gamedev,sdl2
+Enter an optional Website URL for the crate: (default: '')
+>
+Using default: ''
+✓ ada_game initialized successfully.
+```
+
+**N.B:** For the Ada LSP server to do autocomplete with VSCode, the following export needs
+to be defined before you start the editor:
+
+```console
+$ export GPR_PROJECT_PATH="./alire/cache/pins/sdlada:./alire/cache/pins/sdlada_image:./alire/cache/pins/sdlada_mixer:./alire/cache/pins/sdlada_ttf"
+```
+
+Edit the source:
+
+```console
+$ cd ada_game
+$ alr edit
+```
+
+Add the following to the end of the `toml.alire`:
+
+```toml
+...
+executables = ["ada_game"]
+
+[[depends-on]]
+  sdlada       = "*"
+  sdlada_mixer = "*"
+  sdlada_image = "*"
+  sdlada_ttf   = "*"
+
+[[pins]]
+  sdlada       = { url = "git@github.com:ada-game-framework/sdlada.git" }
+  sdlada_mixer = { url = "git@github.com:ada-game-framework/sdlada_mixer.git" }
+  sdlada_image = { url = "git@github.com:ada-game-framework/sdlada_image.git" }
+  sdlada_ttf   = { url = "git@github.com:ada-game-framework/sdlada_ttf.git" }
+```
+
+Now change the `ada_game.gpr` file, such that the `Compiler` section looks like
+this:
+
+```ada
+   package Compiler is
+      for Default_Switches ("Ada") use Ada_Game_Config.Ada_Compiler_Switches &
+         ("-gnat2022", "-gnatyM120");
+   end Compiler;
+```
+
+Now do a test build:
+
+```ada
+$ alr build
+```
+
+It should checkout the subprojects into `alire/cache/pins` and build successfully.
+
+## Creating a hardware accelerated window
+
+Open the `src/ada_game.adb` source file in your editor. The first thing we want
+to do is to open a window for the game to be displayed within, edit the file such
+that it looks like the following:
+
+```ada
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+with SDL.Video.Windows.Makers;
+
+procedure Ada_Game is
+   package Encoders renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+   package Windows renames SDL.Video.Windows;
+
+   Game_Window : Windows.Window;
+   Window_Size : SDL.Positive_Sizes := (640, 480);
+begin
+   Windows.Makers.Create
+     (Win      => Game_Window,
+      Title    => Encoders.Encode ("Ada SDL2 Tutorial"),
+      Position => Windows.Centered_Window_Position,
+      Size     => Window_Size);
+
+   delay 3.0;
+end Ada_Game;
+```
+
+Build and run, this should make the screen flicker and will probably copy the existing
+screen contents to the new window, then it will close.
+
+```console
+$ alr run
+```
+
+## Adding a game loop
+
+We want the game to do more than just show a window for a bit and then exit. So,
+we need a game loop, you can use a while loop:
+
+```ada
+while not Finished loop
+   --  Do things in here.
+end loop;
+```
+
+Or an infinite loop:
+
+```ada
+loop
+   --  Do things in here.
+
+   exit when Finished;
+end loop;
+```
+
+Pick one of these and replace the delay statement with it, don't forget to add
+the condition variable.
+
+## Exiting the game
+
+We don't want the game to execute forever, so we need a nice clean way to exit
+the game. A real game would have a menu displayed which would provide an exit
+option. For this example, we'll exit the game with the Escape key and the close
+window icon.
+
+**N.B:** The `SDL.Events.*` package hierarchy is a lot of a mess, they will
+be changed in future. I originally wanted to have separate packages for each kind
+of event, mouse, keyboard, etc. But due to Ada's view of packages, I couldn't
+the final Event record which combines them all the way I wanted.
+
+We need an `Events` object we can pull the current event into so we can
+examine it:
+
+```ada
+Event : SDL.Events.Events.Events;
+```
+
+As we have used this package, we need a `with` clause:
+
+```ada
+with SDL.Events.Events;
+```
+
+Then we can add the even polling loop, replace the "Do things in here." comment:
+
+```ada
+      while SDL.Events.Events.Poll (Event) loop
+         case Event.Common.Event_Type is
+            when SDL.Events.Quit =>
+               Finished := True;
+
+            when SDL.Events.Keyboards.Key_Up =>
+               if Event.Keyboard.Key_Sym.Key_Code = SDL.Events.Keyboards.Code_Escape then
+                  Finished := True;
+               end if;
+
+            when others =>
+               null;
+         end case;
+      end loop;
+```
+
+This won't compile because the `Key_Code` operators aren't visible, add the
+following line after the previous package `renames` statement:
+
+```ada
+   use type SDL.Events.Keyboards.Key_Codes;
+```
+
+Now run and test that the escape key and the close window button work as expected.
+
+## Switching between full screen and windowed modes
+
+A player might want to use a windowed mode instead of full screen, so allow a
+way to switch.
+
+A real game would have a menu system which provided a way to select a screen
+resolution and whether it's windowed or not.
+
+```ada
+      Position => Windows.Centered_Window_Position,
+      Size     => Window_Size);
+```
+
+To:
+
+```ada
+      Position => Windows.Centered_Window_Position,
+      Size     => Window_Size,
+      Flags    => Mode or Windows.OpenGL);
+```
+
+The variable `Mode` needs to be created:
+
+```ada
+   Mode        : Windows.Window_Flags := Windows.Windowed;
+```
+
+Now we can extend the event loop `if` statement with the following which
+will change the window mode:
+
+```ada
+               elsif Event.Keyboard.Key_Sym.Key_Code = SDL.Events.Keyboards.Code_F then
+                  if Mode = Windows.Windowed then
+                     Mode := Windows.Full_Screen_Desktop;
+                  elsif Mode = Windows.Full_Screen_Desktop then
+                     Mode := Windows.Windowed;
+                  end if;
+
+                  Windows.Set_Mode (Game_Window, Mode);
+```
+
+## Drawing to the screen
+
+## Adding an FPS counter
