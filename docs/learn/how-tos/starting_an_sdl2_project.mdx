@@ -480,7 +480,7 @@ and then near the end clean up:
 
 ```ada
 // highlight-next-line
-      TTFs.Finalise;
+      TTFs.Quit;
       Windows.Finalize (Game_Window);
 ```
 
@@ -558,3 +558,22 @@ is rendered under the triangle, make sure you render this last by moving the
 
 You might want to use the `Render_Shaded` function instead if you have trouble
 seeing the FPS counter.
+
+Now, add a constant to the FPS block:
+
+```ada
+         FPS : declare
+// highlight-next-line
+            FPS_Text     : constant String := "FPS: ";
+```
+
+and then use this to construct the text rendered onto the surface:
+
+```ada
+            Text_Surface : Surfaces.Surface := TTFs.Render_Solid
+              (Font,
+               Text   => FPS_Text & "9999",
+               Colour => (Alpha => 255, others => 0));
+```
+
+We want to make sure the FPS counter gets a number instead of "9999."
