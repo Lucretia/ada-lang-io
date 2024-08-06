@@ -405,4 +405,39 @@ toggle between a black fullscreen and a black window.
 
 ## Drawing to the screen
 
+Now we want to draw something, anything, to the screen, just to prove our game
+is working fine. So, we need to define a triangle to draw, add the following:
+
+```ada
+   Triangle    : Renderers.Vertex_Arrays (1 .. 3) := (
+      1 => Renderers.Vertices'(Position           => (X => 10.5, Y => 10.5),
+                               Colour             => (Red | Alpha => 255, others => 0),
+                               Texture_Coordinate => <>),
+      2 => Renderers.Vertices'(Position           => (X => 50.5, Y => 10.5),
+                               Colour             => (Red | Alpha => 255, others => 0),
+                               Texture_Coordinate => <>),
+      3 => Renderers.Vertices'(Position           => (X => 10.5, Y => 50.5),
+                               Colour             => (Red | Alpha => 255, others => 0),
+                               Texture_Coordinate => <>));
+```
+
+Before the `Clear` function call, add the following line:
+
+```ada
+         Renderers.Set_Draw_Colour (Renderer, (others => 255));
+```
+
+This will set the screen colour to white.
+
+Then to actually draw, add the following line before the `Present` function
+call:
+
+```ada
+         Renderers.Render_Geometry (Renderer, Triangle);
+```
+
+And there we have a small triangle in the top left corner of the window.
+
+![Ada SDL2 Window with Triangle](../../../static/img/tutorials/start_sdl2/ada_sdl2-triangle.png)
+
 ## Adding an FPS counter
