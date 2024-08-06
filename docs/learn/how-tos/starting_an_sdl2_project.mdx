@@ -341,19 +341,19 @@ with SDL.Video.Renderers.Makers;
 with SDL.Video.Textures.Makers;
 ```
 
-We need to add both a renderer and a texture to render:
-
-```ada
-   Renderer : SDL.Video.Renderers.Renderer;
-   Texture  : SDL.Video.Textures.Texture;
-```
-
 Add more renames:
 
 ```ada
    package Pixel_Formats renames Video.Pixel_Formats;
    package Renderers renames Video.Renderers.Makers;
    package Textures renames Video.Textures.Makers;
+```
+
+We need to add both a renderer and a texture to render:
+
+```ada
+   Renderer : Renderers.Renderer;
+   Texture  : Textures.Texture;
 ```
 
 After the window creation function, add the following:
