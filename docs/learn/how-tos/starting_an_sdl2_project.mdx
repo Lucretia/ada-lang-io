@@ -394,8 +394,8 @@ Now to present the thing to the screen. After the event while loop, add the
 following lines:
 
 ```ada
-      Renderer.Clear;
-      Renderer.Present;
+         Renderers.Clear (Renderer);
+         Renderers.Present (Renderer);
 ```
 
 When you run this game, you will now have a glorious black window, yay! Pressing F will
