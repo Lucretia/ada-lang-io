@@ -648,3 +648,49 @@ scaled by. Any animations scaled by this value move in _pixels per second_.
 
 Now compare how much processor time the game is now using compared to what it
 was doing before.
+
+### Calculating the FPS
+
+_N.B:_ This section doesn't work properly.
+
+```ada
+   Time_To_Wait      : Timers.Milliseconds_Long := Timers.Milliseconds_Long'First;
+// highlight-next-line
+   Frames_Counted    : Natural := Natural'First;
+```
+
+```ada
+         FPS : declare
+// highlight-start
+            Ticks        : Timers.Milliseconds_Long := Timers.Ticks;
+// highlight-end
+            Average_FPS  : Float := Float (Frames_Counted) / (Float (Ticks) / Milliseconds);
+            FPS_Text     : constant String := "FPS: ";
+// highlight-start
+            Text_Surface : Surfaces.Surface;
+            Text_Texture : Textures.Texture;
+
+            function Format (FPS : Float) return String is
+               package FIO is new IO.Float_IO (Float);
+
+               Result : String (1 .. 20);
+            begin
+               FIO.Put (To => Result, Item => FPS, Aft => 2, Exp => 0);
+
+               return AS.Fixed.Trim (Result, Side => AS.Both);
+            end Format;
+
+            use type SDL.Dimension;
+         begin
+            if Average_FPS > 2_000_000.0 then
+               Average_FPS := 0.0;
+            end if;
+
+            Text_Surface := TTFs.Render_Solid
+              (Font,
+               Text   => FPS_Text & Format (Average_FPS),
+               Colour => (Alpha => 255, others => 0));
+// highlight-end
+
+            Textures.Makers.Create (Text_Texture, Renderer, Text_Surface);
+```
