@@ -265,7 +265,7 @@ with SDL.Events.Events;
 Then we can add the even polling loop, replace the "Do things in here." comment:
 
 ```ada
-      while SDL.Events.Events.Poll (Event) loop
+      Process_Input : while SDL.Events.Events.Poll (Event) loop
          case Event.Common.Event_Type is
             when SDL.Events.Quit =>
                Finished := True;
@@ -278,7 +278,7 @@ Then we can add the even polling loop, replace the "Do things in here." comment:
             when others =>
                null;
          end case;
-      end loop;
+      end loop Process_Input;
 ```
 
 This won't compile because the `Key_Code` operators aren't visible, add the
