@@ -577,3 +577,74 @@ and then use this to construct the text rendered onto the surface:
 ```
 
 We want to make sure the FPS counter gets a number instead of "9999."
+
+### Capping the FPS
+
+This is based on the tutorial by [pikuma](https://youtu.be/XfZ6WrV5Z7Y?si=oohXGQNKL72UHZFD).
+
+You can check your process manager (or htop on \*nix) to see how much processor
+time the game is using.
+
+We need to bring in the `Timers` package:
+
+```ada
+// highlight-next-line
+with SDL.Timers;
+with SDL.TTFs.Makers;
+```
+
+and as usual, add a renames:
+
+```ada
+// highlight-next-line
+   package Timers renames SDL.Timers;
+   package TTFs renames SDL.TTFs;
+```
+
+We are going to cap the game to 30 FPS to start with, these are floating point
+numbers, but the SDL `Milliseconds_Long` is an unsigned, so there will need to
+a number of type conversions, in fact with the wrong type conversions the later
+will calculations will cause an exception.
+
+```ada
+   Font              : TTFs.Fonts;
+// highlight-start
+   Target_FPS        : constant := 30.0;
+   Milliseconds      : constant := 1000.0;
+   Frame_Target_Time : constant := Milliseconds / Target_FPS;
+   Last_Frame_Time   : Timers.Milliseconds_Long := Timers.Milliseconds_Long'First;
+   Delta_Time_MS     : Float := 0.0;
+   Time_To_Wait      : Timers.Milliseconds_Long := Timers.Milliseconds_Long'First;
+
+   use type Timers.Milliseconds_Long;
+// highlight-end
+```
+
+The following code calculates the `Time_To_Wait` value if the game is running
+too fast and then delays if it is.
+
+Then it calculates the `Delta_Time_MS` value by which all animations can be
+scaled by. Any animations scaled by this value move in _pixels per second_.
+
+```ada
+         end loop Process_Input;
+// highlight-start
+
+         --  Update.
+         Time_To_Wait := Timers.Milliseconds_Long (Frame_Target_Time) - (Timers.Ticks - Last_Frame_Time);
+
+         --  Delay if running too fast.
+         if Time_To_Wait > 0 and then Float (Time_To_Wait) <= Frame_Target_Time then
+            Timers.Wait_Delay (Time_To_Wait);
+         end if;
+
+         Delta_Time_MS   := Float (Timers.Ticks - Last_Frame_Time) / Milliseconds;
+         Last_Frame_Time := Timers.Ticks;
+
+         --  Render.
+// highlight-end
+         Renderers.Set_Draw_Colour (Renderer, (others => 255));
+```
+
+Now compare how much processor time the game is now using compared to what it
+was doing before.
