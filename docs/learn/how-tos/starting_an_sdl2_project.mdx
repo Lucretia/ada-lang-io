@@ -441,3 +441,108 @@ And there we have a small triangle in the top left corner of the window.
 ![Ada SDL2 Window with Triangle](../../../static/img/tutorials/start_sdl2/ada_sdl2-triangle.png)
 
 ## Adding an FPS counter
+
+It's useful to know how fast the game is running, game loops can slow things down
+and that isn't desirable.
+
+There are two ways to add text:
+
+1. Use SDL TTF library.
+2. Use a texture.
+
+I will be using the first method here.
+
+Start by importing the TTF library, you don't need to link anything as it's all
+included.
+
+```ada
+with SDL.TTFs.Makers;
+```
+
+Then add a rename to make things a bit easier to read:
+
+```ada
+   package TTFs renames SDL.TTFs;
+```
+
+Along with the SDL initialisation, we may as well Initialise the TTF library:
+
+```ada
+   if SDL.Initialise and then TTFs.Initialise then
+```
+
+and then near the end clean up:
+
+```ada
+// highlight-next-line
+      TTFs.Finalise;
+      Windows.Finalize (Game_Window);
+```
+
+We need a `Fonts` object to put our font into:
+
+```ada
+// highlight-next-line
+   Font        : TTFs.Fonts;
+begin
+```
+
+The font needs to be loaded in from disk, for this we will pass it as a command
+line argument, that way you can use whatever TTF font you like that is available
+to you as they can vary per installation. First bring in the command line package:
+
+```ada
+with Ada.Command_Line;
+```
+
+Then create the font object:
+
+```ada
+// highlight-start
+      TTFs.Makers.Create (Font,
+                          File_Name  => Ada.Command_Line.Argument (1),
+                          Point_Size => 48);
+// highlight-end
+
+      Main : loop
+```
+
+When we draw the text, it has to be drawn to a Surface and then the surface needs
+to be rendered to the window texture. We'll need the `Surface` package:
+
+```ada
+with SDL.Video.Surfaces;
+```
+
+and a renaming:
+
+```ada
+   package Surfaces renames Video.Surfaces;
+```
+
+Then we can render the text:
+
+```ada
+         Renderers.Clear (Renderer);
+// highlight-start
+
+
+         declare
+            Text_Surface : Surfaces.Surface := TTFs.Render_Solid
+              (Font,
+               Text   => "FPS: 9999",
+               Colour => (Alpha => 255, others => 0));
+            Text_Texture : Textures.Texture;
+
+            use type SDL.Dimension;
+         begin
+            Textures.Makers.Create (Text_Texture, Renderer, Text_Surface);
+            Renderers.Copy (Renderer, Text_Texture, To => (X      => Window_Size.Width - 200,
+                                                           Y      => 0,
+                                                           Width  => 200,
+                                                           Height => 48));
+         end;
+
+// highlight-end
+         Renderers.Render_Geometry (Renderer, Triangle);
+```
