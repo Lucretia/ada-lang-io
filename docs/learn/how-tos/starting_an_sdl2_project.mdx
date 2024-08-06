@@ -279,11 +279,13 @@ Now run and test that the escape key and the close window button work as expecte
 
 ## Switching between full screen and windowed modes
 
-A player might want to use a windowed mode instead of full screen, so allow a
-way to switch.
+You will want to be able to switch between a windowed mode and full screen whilst
+debugging, so allow an easy way to switch.
 
 A real game would have a menu system which provided a way to select a screen
 resolution and whether it's windowed or not.
+
+Change the following:
 
 ```ada
       Position => Windows.Centered_Window_Position,
