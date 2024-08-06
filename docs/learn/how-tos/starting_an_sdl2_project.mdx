@@ -322,8 +322,8 @@ will change the window mode:
 
 ## Creating a blank canvas
 
-In SDL2, the way to draw the screen is to render to a texture, and then present
-that texture to the renderer. This is basically, off screen rendering.
+In SDL2, the way to draw to the screen is to draw to an off-screen texture and then
+present that texture to the renderer. This is basically, off screen rendering.
 
 With the correct packages:
 
@@ -356,7 +356,9 @@ After the window creation function, add the following:
                             Flags  => Accelerated);
 ```
 
-The Flags just specify that we want a hardware accelerated renderer.
+The Flags just specify that we want a hardware accelerated renderer. Under the
+covers, SDL2 will create either an OpenGL, Metal, Vulkan or DX accelerated
+renderer.
 
 Following this, we need to create a texture which will be our game world, or
 screen drawing surface. This will be used to implement double buffering, as you'll
