@@ -532,7 +532,7 @@ Then we can render the text:
 // highlight-start
 
 
-         declare
+         FPS : declare
             Text_Surface : Surfaces.Surface := TTFs.Render_Solid
               (Font,
                Text   => "FPS: 9999",
@@ -546,7 +546,7 @@ Then we can render the text:
                                                            Y      => 0,
                                                            Width  => 200,
                                                            Height => 48));
-         end;
+         end FPS;
 
 // highlight-end
          Renderers.Render_Geometry (Renderer, Triangle);
@@ -555,3 +555,6 @@ Then we can render the text:
 If you change the X co-ordinate of the FPS counter texture, you'll see that it
 is rendered under the triangle, make sure you render this last by moving the
 `Render_Geometry` procedure call to above the FPS rendering.
+
+You might want to use the `Render_Shaded` function instead if you have trouble
+seeing the FPS counter.
