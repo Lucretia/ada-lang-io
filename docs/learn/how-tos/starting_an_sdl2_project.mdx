@@ -5,6 +5,8 @@ keywords:
   - UTF-8
   - Unicode
   - GNAT
+  - SDLAda
+  - SDL2
 ---
 
 # Starting an SDL2 project with SDLAda
@@ -22,9 +24,11 @@ Create a directory or find a suitable directory for you game development source 
 use [Alire](https://ada-lang.io) to create a new project:
 
 ```console
+// highlight-start
 $ mkdir sdl2-tut
 $ cd sdl2-tut
 $ alr init --bin ada_game
+// highlight-end
 Enter a short description of the crate: (default: '')
 > Example of SDLAda.
 Select a software license for the crate?
@@ -49,21 +53,77 @@ Using default: ''
 ✓ ada_game initialized successfully.
 ```
 
-**N.B:** For the Ada LSP server to do autocomplete with VSCode, the following export needs
-to be defined before you start the editor:
+Now, we want to use the SDL packages, but as they're in flux, it's best to use the
+github HEAD sources, we do that by passing the `--use` flag with the URL of the
+repositories.
 
 ```console
-$ export GPR_PROJECT_PATH="./alire/cache/pins/sdlada:./alire/cache/pins/sdlada_image:./alire/cache/pins/sdlada_mixer:./alire/cache/pins/sdlada_ttf"
+// highlight-next-line
+$ alr with sdlada --use=https://github.com/ada-game-framework/sdlada.git
+Cloning into '/<path to>/ada_game/alire/tmp/alr-ifht.tmp'...
+remote: Enumerating objects: 1245, done.
+remote: Counting objects: 100% (1245/1245), done.
+remote: Compressing objects: 100% (603/603), done.
+remote: Total 1245 (delta 943), reused 792 (delta 589), pack-reused 0
+Receiving objects: 100% (1245/1245), 456.60 KiB | 5.93 MiB/s, done.
+Resolving deltas: 100% (943/943), done.
+ⓘ Pulling sdlada branch ...
+Already up to date.
+warn: Spent 0.14 seconds exploring complete solutions
+warn: Exploring incomplete solutions to dependencies, this may take some time...
+warn: The following external dependencies are unavailable within Alire:
+warn:    libsdl2^2.0.0
+warn: They should be made available in the environment by the user.
+warn: Generating possibly incomplete configuration because of missing dependencies
+◶ Syncing build dir... warn: Generating possibly incomplete environment because of missing dependencies
+Requested changes:
+
+   ✓ sdlada ^2.5.73 (add)
+warn: Spent 0.00 seconds exploring complete solutions
+warn: Exploring incomplete solutions to dependencies, this may take some time...
+
+Changes to dependency solution:
+
+   New solution is incomplete.
+   +📦      make    4.4.1  (new,indirect,executable in path)
+   +📌      sdlada  2.5.73 (new,path=alire/cache/pins/sdlada,url=https://github.com/ada-game-framework/sdlada.git)
+   Missing:
+   +❗      libsdl2 ^2.0.0 (new,indirect,missing)
+
+Do you want to proceed?
+[Y] Yes  [N] No  (default is No) Y
 ```
 
-Edit the source:
+Now, do the same with the other repos:
+
+```console
+$ alr with sdlada_mixer --use=https://github.com/ada-game-framework/sdlada_mixer.git
+$ alr with sdlada_image --use=https://github.com/ada-game-framework/sdlada_image.git
+$ alr with sdlada_ttf --use=https://github.com/ada-game-framework/sdlada_ttf.git
+```
+
+To test to make sure we can get autocompletion with the Ada language server, or
+whatever you are using, we need to check alr's environment:
+
+```console
+// highlight-next-line
+$ alr printenv | grep GPR_PRO
+export GPR_PROJECT_PATH="/<path to>/ada_game:/<path to>/ada_game/alire/cache/pins/sdlada/build/gnat:/<path to>/ada_game/alire/cache/pins/sdlada_mixer:/<path to>/ada_game/alire/cache/pins/sdlada_image:/<path to>/ada_game/alire/cache/pins/sdlada_ttf:"
+```
+
+Now, edit the source:
 
 ```console
 $ cd ada_game
+$ TODO: Add command to set the editor.
 $ alr edit
 ```
 
-Add the following to the end of the `toml.alire`:
+**N.B:** To get the Ada LSP server to do autocomplete with VSCode, I have always
+needed to add the GPR to the workspace field in the VSCode settings.
+
+You might want to reorganise the `depends-on` and the `pins` in the `toml.alire`
+file:
 
 ```toml
 ...
@@ -112,18 +172,24 @@ with SDL.Video.Windows.Makers;
 
 procedure Ada_Game is
    package Encoders renames Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
-   package Windows renames SDL.Video.Windows;
+   package Video renames SDL.Video;
+   package Windows renames Video.Windows;
 
    Game_Window : Windows.Window;
    Window_Size : constant SDL.Positive_Sizes := (640, 480);
 begin
-   Windows.Makers.Create
-     (Win      => Game_Window,
-      Title    => Encoders.Encode ("Ada SDL2 Tutorial"),
-      Position => Windows.Centered_Window_Position,
-      Size     => Window_Size);
+   if SDL.Initialise then
+      Windows.Makers.Create
+        (Win      => Game_Window,
+         Title    => Encoders.Encode ("Ada SDL2 Tutorial"),
+         Position => Windows.Centered_Window_Position,
+         Size     => Window_Size);
 
-   delay 3.0;
+      delay 3.0;
+
+      Windows.Finalize (Game_Window);
+      SDL.Quit;
+   end if;
 end Ada_Game;
 ```
 
@@ -140,19 +206,19 @@ We want the game to do more than just show a window for a bit and then exit. So,
 we need a game loop, you can use a while loop:
 
 ```ada
-while not Finished loop
+Main : while not Finished loop
    --  Do things in here.
-end loop;
+end loop Main;
 ```
 
 Or an infinite loop:
 
 ```ada
-loop
+Main : loop
    --  Do things in here.
 
-   exit when Finished;
-end loop;
+   exit Main when Finished;
+end loop Main;
 ```
 
 Pick one of these and replace the delay statement with it, don't forget to add
@@ -275,9 +341,9 @@ We need to add both a renderer and a texture to render:
 Add two more renames:
 
 ```ada
-   package Pixel_Formats renames SDL.Video.Pixel_Formats;
-   package Renderers renames SDL.Video.Renderers.Makers;
-   package Textures renames SDL.Video.Textures.Makers;
+   package Pixel_Formats renames Video.Pixel_Formats;
+   package Renderers renames Video.Renderers.Makers;
+   package Textures renames Video.Textures.Makers;
 ```
 
 After the window creation function, add the following:
@@ -320,8 +386,10 @@ following lines:
       Renderer.Present;
 ```
 
-When you run this game, you will now have a black window, yay! Pressing F will
+When you run this game, you will now have a glorious black window, yay! Pressing F will
 toggle between a black fullscreen and a black window.
+
+![Ada SDL2 Window](../../../static/img/tutorials/start_sdl2/ada_sdl2.png)
 
 ## Drawing to the screen
 
