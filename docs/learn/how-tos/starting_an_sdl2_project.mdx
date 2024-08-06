@@ -551,3 +551,7 @@ Then we can render the text:
 // highlight-end
          Renderers.Render_Geometry (Renderer, Triangle);
 ```
+
+If you change the X co-ordinate of the FPS counter texture, you'll see that it
+is rendered under the triangle, make sure you render this last by moving the
+`Render_Geometry` procedure call to above the FPS rendering.
